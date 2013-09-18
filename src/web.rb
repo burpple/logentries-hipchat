@@ -23,7 +23,7 @@ post '/alert' do
     message = message.split('by').collect(&:strip)
     message = CGI.escapeHTML("<b>#{message.first}</b> by <b>#{message.last}</b>")
     puts message
-    client[room_id].send("Logentries/Heroku", message, color: 'purple', notify: 1)
+    client[room_id].send("Logentries", message, color: 'purple', notify: 1)
   else
     message = "%s: %s" % [payload['alert']['name'], payload['event']['m']]
     puts message
