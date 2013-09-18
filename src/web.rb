@@ -21,7 +21,7 @@ post '/alert' do
     message = payload['event']['m']
     message = message.sub(/.*Scale/, 'Scale')
     message = message.split('by').collect(&:strip)
-    message = CGI.escapeHTML("<b>#{message.first}</b> by <b>#{message.last}</b>")
+    message = "<b>#{CGI.escapeHTML(message.first)}</b> by <b>#{CGI.escapeHTML(message.last)}</b>"
     puts message
     client[room_id].send("Logentries", message, color: 'purple', notify: 1)
   else
