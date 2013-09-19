@@ -14,6 +14,7 @@ end
 
 post '/alert' do
   # puts params
+  payload = JSON.parse(params[:payload])
   alert_name = payload['alert']['name']
   if alert_name == "Scale Dynos"
     message = payload['event']['m']
@@ -26,7 +27,6 @@ post '/alert' do
     # do nothing. simply a ping to keep heroku dyno alive.
     puts "#{alert_name} received!"
   else
-    payload = JSON.parse(params[:payload])
     puts payload
     message = "%s: %s" % [payload['alert']['name'], payload['event']['m']]
     puts message
