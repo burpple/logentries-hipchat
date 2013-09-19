@@ -24,6 +24,9 @@ post '/alert' do
     message = "<b>#{CGI.escapeHTML(message.first)}</b> by <b>#{CGI.escapeHTML(message.last)}</b>"
     puts message
     client[room_id].send("Logentries", message, color: 'purple', notify: 1)
+  elsif alert_name.start_with? "GET request"
+    # do nothing. simply a ping to keep heroku dyno alive.
+    puts "#{alert_name} received!"
   else
     message = "%s: %s" % [payload['alert']['name'], payload['event']['m']]
     puts message
