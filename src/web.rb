@@ -1,6 +1,7 @@
 require 'sinatra'
 require 'cgi'
 require 'redis'
+require 'uri'
 
 api_token = ENV['HIPCHAT_TOKEN']
 client = HipChat::Client.new(api_token)
