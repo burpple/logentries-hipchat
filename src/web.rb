@@ -30,7 +30,8 @@ post '/alert' do
     web     = message.first.scan(/(?<=web=)\d/).first.to_i
     workers = message.first.scan(/(?<=worker=)\d/).first.to_i
     
-    notif_message = ""
+    notif_message = "<b>#{CGI.escapeHTML(message.first)}</b> by <b>#{CGI.escapeHTML(message.last)}</b>"
+    notify = false
     if prev_web == web and prev_workers == workers
       # no change, don't notify
       puts "Scale alert received, but ignoring due to no change."
@@ -39,17 +40,19 @@ post '/alert' do
       worker_alert_threshold = 4 # notify if exceed this
       worker_cooldown_threshold = 1 # notify if go below this
       if prev_workers < worker_alert_threshold and workers >= worker_alert_threshold
-        notif_message = "Workers exceeded threshold, now #{worker_alert_threshold}"
+        notif_message += " (Workers exceeded threshold of <b>#{worker_alert_threshold}</b>)"
+        notify = true
       elsif prev_workers > worker_cooldown_threshold and workers <= worker_cooldown_threshold
-        notif_message = "Workers back below cooldown threshold, now #{worker_cooldown_threshold}"
+        notif_message += " (Workers below cooldown threshold of <b>#{worker_cooldown_threshold}</b>)"
+        notify = true
       end
     elsif prev_workers == workers
       # scaled web
-      notif_message = "<b>#{CGI.escapeHTML(message.first)}</b> by <b>#{CGI.escapeHTML(message.last)}</b>"
+      notify = true
     end
     REDIS.set "web_dynos", web
     REDIS.set "worker_dynos", workers
-    if notif_message != ""
+    if notify
       puts notif_message
       client[room_id].send("Logentries", notif_message, color: 'purple', notify: 1)
     end
