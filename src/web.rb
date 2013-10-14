@@ -24,23 +24,24 @@ post '/alert' do
     message = payload['event']['m']
     message = message.sub(/.*Scale/, 'Scale')
     message = message.split('by').collect(&:strip)
+    scaled_by = message.last
 
     prev_web     = REDIS.get("web_dynos").to_i
     prev_workers = REDIS.get("worker_dynos").to_i
     web     = message.first.scan(/(?<=web=)\d/).first.to_i
     workers = message.first.scan(/(?<=worker=)\d/).first.to_i
     
-    notif_message = "<b>#{CGI.escapeHTML(message.first)}</b> by <b>#{CGI.escapeHTML(message.last)}</b>"
+    notif_message = "<b>#{CGI.escapeHTML(message.first)}</b> by <b>#{CGI.escapeHTML(scaled_by)}</b>"
     notify = false
     if prev_web == web and prev_workers == workers
       # no change, don't notify
       puts "Scale alert received, but ignoring due to no change."
     elsif prev_web == web
       # scaled worker
-      worker_alert_threshold = 4 # notify if exceed this
+      worker_alert_threshold = 4 # notify if reach this
       worker_cooldown_threshold = 1 # notify if go below this
       if prev_workers < worker_alert_threshold and workers >= worker_alert_threshold
-        notif_message += " (Workers exceeded threshold of <b>#{worker_alert_threshold}</b>)"
+        notif_message += " (Workers reached threshold of <b>#{worker_alert_threshold}</b>)"
         notify = true
       elsif prev_workers > worker_cooldown_threshold and workers <= worker_cooldown_threshold
         notif_message += " (Workers below cooldown threshold of <b>#{worker_cooldown_threshold}</b>)"
@@ -48,7 +49,18 @@ post '/alert' do
       end
     elsif prev_workers == workers
       # scaled web
-      notify = true
+      web_alert_threshold = 5 # notify if reach this
+      web_cooldown_threshold = 2 # notify if go below this
+      if prev_web < web_alert_threshold and web >= web_alert_threshold
+        notif_message += " (Web dynos reached threshold of <b>#{web_alert_threshold}</b>)"
+        notify = true
+      elsif prev_web > web_cooldown_threshold and web <= web_cooldown_threshold
+        notif_message += " (Web dynos below cooldown threshold of <b>#{web_cooldown_threshold}</b>)"
+        notify = true
+      else
+        # alert unless is autoscale
+        notify = scaled_by != "dan@oneuphero.com"
+      end
     end
     REDIS.set "web_dynos", web
     REDIS.set "worker_dynos", workers
