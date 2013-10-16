@@ -28,6 +28,8 @@ post '/alert' do
 
     prev_web     = REDIS.get("web_dynos").to_i
     prev_workers = REDIS.get("worker_dynos").to_i
+    web_alert_active    = REDIS.get("web_alert_active").to_i == 1
+    worker_alert_active = REDIS.get("worker_alert_active").to_i == 1
     web     = message.first.scan(/(?<=web=)\d/).first.to_i
     workers = message.first.scan(/(?<=worker=)\d/).first.to_i
     
@@ -43,9 +45,11 @@ post '/alert' do
       if prev_workers < worker_alert_threshold and workers >= worker_alert_threshold
         notif_message += " (Workers reached threshold of <b>#{worker_alert_threshold}</b>)"
         notify = true
-      elsif prev_workers > worker_cooldown_threshold and workers <= worker_cooldown_threshold
+        REDIS.set "worker_alert_active", 1
+      elsif worker_alert_active and prev_workers > worker_cooldown_threshold and workers <= worker_cooldown_threshold
         notif_message += " (Workers below cooldown threshold of <b>#{worker_cooldown_threshold}</b>)"
         notify = true
+        REDIS.del "worker_alert_active"
       end
     elsif prev_workers == workers
       # scaled web
@@ -54,9 +58,11 @@ post '/alert' do
       if prev_web < web_alert_threshold and web >= web_alert_threshold
         notif_message += " (Web dynos reached threshold of <b>#{web_alert_threshold}</b>)"
         notify = true
-      elsif prev_web > web_cooldown_threshold and web <= web_cooldown_threshold
+        REDIS.set "web_alert_active", 1
+      elsif web_alert_active and prev_web > web_cooldown_threshold and web <= web_cooldown_threshold
         notif_message += " (Web dynos below cooldown threshold of <b>#{web_cooldown_threshold}</b>)"
         notify = true
+        REDIS.del "web_alert_active"
       else
         # alert unless is autoscale
         notify = scaled_by != "dan@oneuphero.com"
