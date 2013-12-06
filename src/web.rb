@@ -30,8 +30,8 @@ post '/alert' do
     prev_workers = REDIS.get("worker_dynos").to_i
     web_alert_active    = REDIS.get("web_alert_active").to_i == 1
     worker_alert_active = REDIS.get("worker_alert_active").to_i == 1
-    web     = message.first.scan(/(?<=web=)\d/).first.to_i
-    workers = message.first.scan(/(?<=worker=)\d/).first.to_i
+    web     = message.first.scan(/(?<=web=)\d+/).first.to_i
+    workers = message.first.scan(/(?<=worker=)\d+/).first.to_i
     
     notif_message = "<b>#{CGI.escapeHTML(message.first)}</b> by <b>#{CGI.escapeHTML(scaled_by)}</b>"
     notify = false
